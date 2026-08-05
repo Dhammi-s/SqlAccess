@@ -1,6 +1,7 @@
 using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
+using brevo_csharp.Api;
+using brevo_csharp.Client;
+using brevo_csharp.Model;
 
 namespace SqlAccess.Api.Services;
 
@@ -11,21 +12,17 @@ public interface IEmailService
 }
 
 /// <summary>
-/// Sends transactional email through Brevo's HTTP API (https://api.brevo.com/v3/smtp/email).
-/// Uses HTTPS/443 — works where outbound SMTP ports are blocked (most hosts, and CI sandboxes).
-/// Requires a Brevo API key (starts with "xkeysib-") in config "Smtp:ApiKey".
+/// Sends transactional email using the official Brevo SDK (brevo_csharp) over HTTPS.
+/// Requires a Brevo API key (starts with "xkeysib-") in config "Smtp:ApiKey" —
+/// this is NOT the SMTP key ("xsmtpsib-"); the API rejects SMTP keys with 401.
 /// </summary>
 public sealed class EmailService : IEmailService
 {
-    private const string ApiUrl = "https://api.brevo.com/v3/smtp/email";
-
-    private readonly IHttpClientFactory _http;
     private readonly IConfiguration _config;
     private readonly ILogger<EmailService> _log;
 
-    public EmailService(IHttpClientFactory http, IConfiguration config, ILogger<EmailService> log)
+    public EmailService(IConfiguration config, ILogger<EmailService> log)
     {
-        _http = http;
         _config = config;
         _log = log;
     }
@@ -60,40 +57,30 @@ public sealed class EmailService : IEmailService
   <p style='color:#64748b;font-size:12px'>Sent by SQL Access — WorkProvider360 deployment.</p>
 </div>";
 
-        var payload = new
-        {
-            sender = new { name = fromName, email = from },
-            to = new[] { new { email = to } },
-            subject = $"❌ DACPAC build failed — branch '{branch}' ({errors.Count} error(s))",
-            htmlContent = html,
-        };
-
         try
         {
-            using var client = _http.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(20);
+            var config = new brevo_csharp.Client.Configuration();
+            config.ApiKey["api-key"] = apiKey;
 
-            using var req = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
-            {
-                Content = JsonContent.Create(payload),
-            };
-            req.Headers.Add("api-key", apiKey);
-            req.Headers.Add("accept", "application/json");
+            var api = new TransactionalEmailsApi(config);
+            var email = new SendSmtpEmail(
+                sender: new SendSmtpEmailSender(fromName, from),
+                to: new List<SendSmtpEmailTo> { new SendSmtpEmailTo(to) },
+                htmlContent: html,
+                subject: $"❌ DACPAC build failed — branch '{branch}' ({errors.Count} error(s))");
 
-            using var resp = await client.SendAsync(req, ct);
-            if (resp.IsSuccessStatusCode)
-            {
-                _log.LogInformation("Build-failure email sent to {To} via Brevo API.", to);
-                return true;
-            }
-
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            _log.LogError("Brevo API {Status}: {Body}", (int)resp.StatusCode, body);
+            var result = await api.SendTransacEmailAsync(email);
+            _log.LogInformation("Build-failure email sent to {To} via Brevo SDK (messageId {Id}).", to, result?.MessageId);
+            return true;
+        }
+        catch (ApiException ex)
+        {
+            _log.LogError("Brevo SDK error {Code}: {Content}", ex.ErrorCode, (object?)ex.ErrorContent);
             return false;
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Failed to send build-failure email via Brevo API.");
+            _log.LogError(ex, "Failed to send build-failure email via Brevo SDK.");
             return false;
         }
     }
