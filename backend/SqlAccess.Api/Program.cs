@@ -15,7 +15,7 @@ if (string.IsNullOrWhiteSpace(jwtSettings.Key) || jwtSettings.Key.Length < 32)
 builder.Services.AddSingleton(jwtSettings);
 
 var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
-                  ?? new[] { "http://localhost:5173" };
+                  ?? new[] { "http://localhost:5173", "http://localhost:5174", "https://sql-access.vercel.app" };
 
 // ---------- Services ----------
 builder.Services.AddControllers();

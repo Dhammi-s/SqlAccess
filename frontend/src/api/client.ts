@@ -2,8 +2,12 @@ import axios from 'axios'
 
 const TOKEN_KEY = 'sqlaccess.token'
 
+// In dev, VITE_API_BASE_URL is unset -> '/api' uses the Vite proxy.
+// In production (Vercel), .env.production sets it to the runasp.net backend.
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 })
 

@@ -1,4 +1,4 @@
-import { api, getToken } from './client'
+import { api, getToken, API_BASE } from './client'
 
 export interface DacpacInfo {
   dacpacId: string
@@ -44,7 +44,7 @@ export const DeployApi = {
   upload: async (file: File): Promise<DacpacInfo> => {
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch('/api/deploy/upload', {
+    const res = await fetch(`${API_BASE}/deploy/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken() ?? ''}` },
       body: fd,

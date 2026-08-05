@@ -24,6 +24,8 @@ appsettings.*.Local.json
 .env
 .env.*
 secrets.json
+# ...but the production API base URL is public config Vercel needs:
+!frontend/.env.production
 
 # ---------- OS / editor ----------
 .DS_Store
