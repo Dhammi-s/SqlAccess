@@ -1,7 +1,6 @@
 using System.Net;
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using MimeKit;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace SqlAccess.Api.Services;
 
@@ -11,13 +10,22 @@ public interface IEmailService
     Task<bool> SendBuildFailureAsync(string branch, IReadOnlyList<string> errors, CancellationToken ct);
 }
 
+/// <summary>
+/// Sends transactional email through Brevo's HTTP API (https://api.brevo.com/v3/smtp/email).
+/// Uses HTTPS/443 — works where outbound SMTP ports are blocked (most hosts, and CI sandboxes).
+/// Requires a Brevo API key (starts with "xkeysib-") in config "Smtp:ApiKey".
+/// </summary>
 public sealed class EmailService : IEmailService
 {
+    private const string ApiUrl = "https://api.brevo.com/v3/smtp/email";
+
+    private readonly IHttpClientFactory _http;
     private readonly IConfiguration _config;
     private readonly ILogger<EmailService> _log;
 
-    public EmailService(IConfiguration config, ILogger<EmailService> log)
+    public EmailService(IHttpClientFactory http, IConfiguration config, ILogger<EmailService> log)
     {
+        _http = http;
         _config = config;
         _log = log;
     }
@@ -25,20 +33,16 @@ public sealed class EmailService : IEmailService
     public async Task<bool> SendBuildFailureAsync(string branch, IReadOnlyList<string> errors, CancellationToken ct)
     {
         var s = _config.GetSection("Smtp");
-        var host = s["Host"];
-        var user = s["UserName"];
-        var pass = s["Password"];
+        var apiKey = s["ApiKey"];
         var from = s["FromAddress"];
+        var fromName = s["FromDisplayName"] ?? "WorkProvider360";
         var to = s["AlertRecipient"];
 
-        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(pass) ||
-            string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to))
+        if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to))
         {
-            _log.LogWarning("SMTP not fully configured — skipping build-failure email.");
+            _log.LogWarning("Brevo not fully configured (need Smtp:ApiKey, FromAddress, AlertRecipient) — skipping email.");
             return false;
         }
-
-        var port = int.TryParse(s["Port"], out var p) ? p : 587;
 
         var rows = errors.Count == 0
             ? "<li>(no detailed messages)</li>"
@@ -56,27 +60,40 @@ public sealed class EmailService : IEmailService
   <p style='color:#64748b;font-size:12px'>Sent by SQL Access — WorkProvider360 deployment.</p>
 </div>";
 
+        var payload = new
+        {
+            sender = new { name = fromName, email = from },
+            to = new[] { new { email = to } },
+            subject = $"❌ DACPAC build failed — branch '{branch}' ({errors.Count} error(s))",
+            htmlContent = html,
+        };
+
         try
         {
-            var msg = new MimeMessage();
-            msg.From.Add(new MailboxAddress(s["FromDisplayName"] ?? "WorkProvider360", from));
-            msg.To.Add(MailboxAddress.Parse(to));
-            msg.Subject = $"❌ DACPAC build failed — branch '{branch}' ({errors.Count} error(s))";
-            msg.Body = new BodyBuilder { HtmlBody = html }.ToMessageBody();
+            using var client = _http.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(20);
 
-            using var client = new SmtpClient { Timeout = 20_000 };
-            // Brevo on 587 uses STARTTLS.
-            await client.ConnectAsync(host, port, SecureSocketOptions.StartTls, ct);
-            await client.AuthenticateAsync(user, pass, ct);
-            await client.SendAsync(msg, ct);
-            await client.DisconnectAsync(true, ct);
+            using var req = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
+            {
+                Content = JsonContent.Create(payload),
+            };
+            req.Headers.Add("api-key", apiKey);
+            req.Headers.Add("accept", "application/json");
 
-            _log.LogInformation("Build-failure email sent to {To}", to);
-            return true;
+            using var resp = await client.SendAsync(req, ct);
+            if (resp.IsSuccessStatusCode)
+            {
+                _log.LogInformation("Build-failure email sent to {To} via Brevo API.", to);
+                return true;
+            }
+
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            _log.LogError("Brevo API {Status}: {Body}", (int)resp.StatusCode, body);
+            return false;
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Failed to send build-failure email.");
+            _log.LogError(ex, "Failed to send build-failure email via Brevo API.");
             return false;
         }
     }

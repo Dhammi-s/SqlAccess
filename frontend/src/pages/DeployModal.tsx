@@ -39,6 +39,12 @@ export function DeployModal({ onClose }: Props) {
   const [running, setRunning] = useState(false)
   const [build, setBuild] = useState<BuildState | null>(null)
   const [rows, setRows] = useState<Record<number, Row>>({})
+  const [toast, setToast] = useState<{ type: 'warn' | 'success'; text: string } | null>(null)
+
+  function showToast(type: 'warn' | 'success', text: string) {
+    setToast({ type, text })
+    window.setTimeout(() => setToast(null), 6000)
+  }
 
   useEffect(() => {
     AgenciesApi.list(false).then((list) => {
@@ -113,6 +119,11 @@ export function DeployModal({ onClose }: Props) {
             errors: res.errors,
             emailSent: res.emailSent,
           })
+          if (res.emailSent) {
+            showToast('success', 'Alert email sent to jassadhammi@gmail.com')
+          } else {
+            showToast('warn', 'Build failed — but the alert email could NOT be sent to jassadhammi@gmail.com')
+          }
           setRunning(false)
           return
         }
@@ -182,6 +193,14 @@ export function DeployModal({ onClose }: Props) {
 
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
+      {toast && (
+        <div className={`toast toast-${toast.type}`} onMouseDown={(e) => e.stopPropagation()} role="alert">
+          {toast.type === 'warn' ? '⚠' : '✓'} {toast.text}
+          <button className="toast-close" onClick={() => setToast(null)} aria-label="Dismiss">
+            ✕
+          </button>
+        </div>
+      )}
       <div className="modal card modal-lg" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>Deploy database schema (DACPAC)</h2>

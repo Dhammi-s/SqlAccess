@@ -590,3 +590,54 @@ legend {
   margin-bottom: 0.35rem;
   word-break: break-word;
 }
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  max-width: 420px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  animation: toast-in 0.25s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.toast-warn {
+  background: #7c2d12;
+  border: 1px solid #f59e0b;
+  color: #fed7aa;
+}
+.toast-success {
+  background: #14532d;
+  border: 1px solid #22c55e;
+  color: #bbf7d0;
+}
+.toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-left: auto;
+  padding: 0 0.2rem;
+}
+.toast-close:hover {
+  opacity: 1;
+}
