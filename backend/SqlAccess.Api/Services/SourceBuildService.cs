@@ -21,13 +21,15 @@ public sealed class SourceBuildService : ISourceBuildService
 {
     private readonly IHttpClientFactory _http;
     private readonly IConfiguration _config;
+    private readonly IEmailService _email;
     private readonly string _storageDir;
     private readonly ILogger<SourceBuildService> _log;
 
-    public SourceBuildService(IHttpClientFactory http, IConfiguration config, IHostEnvironment env, ILogger<SourceBuildService> log)
+    public SourceBuildService(IHttpClientFactory http, IConfiguration config, IEmailService email, IHostEnvironment env, ILogger<SourceBuildService> log)
     {
         _http = http;
         _config = config;
+        _email = email;
         _log = log;
         _storageDir = Path.Combine(env.ContentRootPath, "App_Data", "dacpacs");
         Directory.CreateDirectory(_storageDir);
@@ -90,25 +92,28 @@ public sealed class SourceBuildService : ISourceBuildService
                 : Directory.EnumerateFiles(extractDir, "*.sqlproj", SearchOption.AllDirectories).FirstOrDefault();
 
             if (projPath is null)
-                return new BuildResult(false, "No .sqlproj found in the repository.", null, 0, 0);
+                return await FailAsync(branch, "No .sqlproj found in the repository.",
+                    new List<string> { "No .sqlproj found in the repository." }, 0, 0, ct);
 
             // 3. Build the DACPAC off the request thread (DacFx is synchronous & heavy).
             var id = Guid.NewGuid().ToString("N");
             var outPath = Path.Combine(_storageDir, id + ".dacpac");
-            var (fileCount, warnings, errorText) = await Task.Run(() => BuildDacpac(projPath, outPath), ct);
+            var (fileCount, warnings, errors) = await Task.Run(() => BuildDacpac(projPath, outPath), ct);
 
-            if (errorText is not null)
-                return new BuildResult(false, errorText, null, fileCount, warnings);
+            if (errors.Count > 0)
+                return await FailAsync(branch,
+                    $"Build failed from '{branch}': {errors.Count} error(s).", errors, fileCount, warnings, ct);
 
             var info = new FileInfo(outPath);
             var dacpac = new DacpacInfo(id, $"WorkProvider360@{branch}.dacpac", info.Length, DateTime.UtcNow);
             return new BuildResult(true,
-                $"Built from '{branch}': {fileCount} model files, {warnings} warning(s).", dacpac, fileCount, warnings);
+                $"Built from '{branch}': {fileCount} model files, {warnings} warning(s).",
+                dacpac, fileCount, warnings, new List<string>(), false);
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Build from branch {Branch} failed", branch);
-            return new BuildResult(false, ex.Message, null, 0, 0);
+            return await FailAsync(branch, ex.Message, new List<string> { ex.Message }, 0, 0, ct);
         }
         finally
         {
@@ -116,7 +121,14 @@ public sealed class SourceBuildService : ISourceBuildService
         }
     }
 
-    private static (int fileCount, int warnings, string? error) BuildDacpac(string projPath, string outPath)
+    private async Task<BuildResult> FailAsync(
+        string branch, string message, List<string> errors, int fileCount, int warnings, CancellationToken ct)
+    {
+        var emailSent = await _email.SendBuildFailureAsync(branch, errors, ct);
+        return new BuildResult(false, message, null, fileCount, warnings, errors, emailSent);
+    }
+
+    private static (int fileCount, int warnings, List<string> errors) BuildDacpac(string projPath, string outPath)
     {
         XNamespace ns = "http://schemas.microsoft.com/developer/msbuild/2003";
         var projDir = Path.GetDirectoryName(Path.GetFullPath(projPath))!;
@@ -132,7 +144,7 @@ public sealed class SourceBuildService : ISourceBuildService
             .ToList();
 
         if (buildFiles.Count == 0)
-            return (0, 0, "The project has no build (.sql) files.");
+            return (0, 0, new List<string> { "The project has no build (.sql) files." });
 
         var dsp = doc.Descendants(ns + "DSP").FirstOrDefault()?.Value ?? "";
         var version = dsp.Contains("Sql170") ? SqlServerVersion.Sql170
@@ -141,16 +153,33 @@ public sealed class SourceBuildService : ISourceBuildService
             : SqlServerVersion.Sql160;
 
         using var model = new TSqlModel(version, new TSqlModelOptions());
+
+        // Per-file parse errors are captured rather than aborting the whole build.
+        var parseErrors = new List<string>();
         foreach (var f in buildFiles)
-            model.AddObjects(File.ReadAllText(f));
+        {
+            try
+            {
+                model.AddObjects(File.ReadAllText(f));
+            }
+            catch (Exception ex)
+            {
+                parseErrors.Add($"{Path.GetFileName(f)}: {ex.Message}");
+            }
+        }
+        if (parseErrors.Count > 0)
+            return (buildFiles.Count, 0, parseErrors);
 
         var messages = model.Validate();
-        var errors = messages.Where(m => m.MessageType == DacMessageType.Error).ToList();
+        var errors = messages
+            .Where(m => m.MessageType == DacMessageType.Error)
+            .Select(e => e.ToString())
+            .Take(100)
+            .ToList();
         if (errors.Count > 0)
-            return (buildFiles.Count, messages.Count - errors.Count,
-                "Schema build failed:\n" + string.Join("\n", errors.Take(10).Select(e => " • " + e)));
+            return (buildFiles.Count, messages.Count - errors.Count, errors);
 
         DacPackageExtensions.BuildPackage(outPath, model, new PackageMetadata { Name = "WorkProvider360" });
-        return (buildFiles.Count, messages.Count, null);
+        return (buildFiles.Count, messages.Count, new List<string>());
     }
 }

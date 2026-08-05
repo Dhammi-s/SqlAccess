@@ -30,6 +30,7 @@ builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAgencyService, AgencyService>();
 builder.Services.AddScoped<IDeploymentService, DeploymentService>();
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISourceBuildService, SourceBuildService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

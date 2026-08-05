@@ -12,6 +12,12 @@ interface Row {
   status: RowStatus
   result?: DeployResult
 }
+interface BuildState {
+  status: 'building' | 'success' | 'error'
+  message: string
+  errors?: string[]
+  emailSent?: boolean
+}
 
 export function DeployModal({ onClose }: Props) {
   const [agencies, setAgencies] = useState<AgencyListItem[]>([])
@@ -31,7 +37,7 @@ export function DeployModal({ onClose }: Props) {
   const [dropObjects, setDropObjects] = useState(false)
 
   const [running, setRunning] = useState(false)
-  const [buildMsg, setBuildMsg] = useState<string | null>(null)
+  const [build, setBuild] = useState<BuildState | null>(null)
   const [rows, setRows] = useState<Record<number, Row>>({})
 
   useEffect(() => {
@@ -91,25 +97,31 @@ export function DeployModal({ onClose }: Props) {
       if (!ok) return
     }
     setRunning(true)
-    setBuildMsg(null)
+    setBuild(null)
     setRows({})
 
     // Step 0 — build the DACPAC from GitHub if that's the source.
     let dacpacId = dacpac?.dacpacId
     if (source === 'github') {
-      setBuildMsg(`Building DACPAC from branch '${branch}'…`)
+      setBuild({ status: 'building', message: `Building DACPAC from branch '${branch}'…` })
       try {
         const res = await DeployApi.build(branch)
         if (!res.success || !res.dacpac) {
-          setBuildMsg('✕ ' + res.message)
+          setBuild({
+            status: 'error',
+            message: res.message,
+            errors: res.errors,
+            emailSent: res.emailSent,
+          })
           setRunning(false)
           return
         }
         setDacpac(res.dacpac)
         dacpacId = res.dacpac.dacpacId
-        setBuildMsg('✓ ' + res.message)
+        setBuild({ status: 'success', message: res.message })
       } catch (err: any) {
-        setBuildMsg('✕ ' + (err.response?.data?.message ?? err.message ?? 'Build failed.'))
+        const msg = err.response?.data?.message ?? err.message ?? 'Build failed.'
+        setBuild({ status: 'error', message: msg, errors: [msg] })
         setRunning(false)
         return
       }
@@ -239,9 +251,7 @@ export function DeployModal({ onClose }: Props) {
               )}
             </>
           )}
-          {buildMsg && (
-            <div className={`alert ${buildMsg.startsWith('✕') ? 'alert-error' : 'alert-info'}`}>{buildMsg}</div>
-          )}
+          {build && <BuildStatus build={build} />}
         </fieldset>
 
         {/* 2. Mode */}
@@ -345,5 +355,50 @@ export function DeployModal({ onClose }: Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+function BuildStatus({ build }: { build: BuildState }) {
+  if (build.status === 'building') {
+    return <div className="alert alert-info">{build.message}</div>
+  }
+
+  const ok = build.status === 'success'
+  return (
+    <div className={`build-status ${ok ? 'ok' : 'bad'}`}>
+      {ok ? <SuccessIcon /> : <FailIcon />}
+      <div className="build-status-body">
+        <div className="build-status-title">{ok ? 'Build succeeded' : 'Build failed'}</div>
+        <div className="build-status-msg">{build.message}</div>
+        {!ok && build.emailSent && (
+          <div className="build-status-email">✉ Error report emailed to jassadhammi@gmail.com</div>
+        )}
+        {!ok && build.errors && build.errors.length > 0 && (
+          <ul className="build-error-list">
+            {build.errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SuccessIcon() {
+  return (
+    <svg className="status-svg" viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="#16a34a" />
+      <path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function FailIcon() {
+  return (
+    <svg className="status-svg" viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="#dc2626" />
+      <path d="M8 8l8 8M16 8l-8 8" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
   )
 }

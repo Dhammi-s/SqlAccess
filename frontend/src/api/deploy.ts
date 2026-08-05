@@ -29,6 +29,8 @@ export interface BuildResult {
   dacpac?: DacpacInfo | null
   modelFileCount: number
   warnings: number
+  errors: string[]
+  emailSent: boolean
 }
 
 export interface DeployRunRequest {

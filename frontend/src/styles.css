@@ -529,3 +529,64 @@ legend {
 .deploy-status.error {
   color: #fca5a5;
 }
+
+/* ---------- build status panel ---------- */
+.build-status {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  margin-top: 0.6rem;
+}
+.build-status.ok {
+  background: rgba(22, 163, 74, 0.12);
+  border: 1px solid rgba(22, 163, 74, 0.4);
+}
+.build-status.bad {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+}
+.status-svg {
+  flex-shrink: 0;
+}
+.build-status-body {
+  min-width: 0;
+  flex: 1;
+}
+.build-status-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.build-status.ok .build-status-title {
+  color: #86efac;
+}
+.build-status.bad .build-status-title {
+  color: #fca5a5;
+}
+.build-status-msg {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-top: 0.15rem;
+}
+.build-status-email {
+  color: #fcd34d;
+  font-size: 0.82rem;
+  margin-top: 0.4rem;
+}
+.build-error-list {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.6rem 0.6rem 1.6rem;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: #fca5a5;
+}
+.build-error-list li {
+  margin-bottom: 0.35rem;
+  word-break: break-word;
+}

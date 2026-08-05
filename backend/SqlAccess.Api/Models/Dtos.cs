@@ -105,7 +105,14 @@ public class BuildFromBranchRequest
     public string Branch { get; set; } = string.Empty;
 }
 
-public record BuildResult(bool Success, string Message, DacpacInfo? Dacpac, int ModelFileCount, int Warnings);
+public record BuildResult(
+    bool Success,
+    string Message,
+    DacpacInfo? Dacpac,
+    int ModelFileCount,
+    int Warnings,
+    List<string> Errors,
+    bool EmailSent);
 
 public class DeployRunRequest
 {
