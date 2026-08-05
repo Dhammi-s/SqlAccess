@@ -48,6 +48,12 @@ public class Website
     /// <summary>Deployment provider key: "FTP" or "SFTP".</summary>
     public string DeployProvider { get; set; } = "FTP";
 
+    /// <summary>
+    /// When set (e.g. "deploy.yml"), deployments run via GitHub Actions (dispatch + track)
+    /// instead of building locally. Lets the portal work on shared hosting.
+    /// </summary>
+    public string? WorkflowFile { get; set; }
+
     public string? FtpHost { get; set; }
     public int FtpPort { get; set; } = 21;
     public string? FtpUsername { get; set; }

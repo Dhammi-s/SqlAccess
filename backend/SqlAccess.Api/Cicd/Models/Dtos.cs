@@ -15,7 +15,7 @@ public record WebsiteDetail(
     int WebsiteId, string WebsiteName, string? RepositoryUrl, string GitProvider,
     string? DefaultBranch, string ProjectType,
     string? BuildCommand, string? PublishCommand, string? PublishFolder,
-    string DeployProvider, string? FtpHost, int FtpPort, string? FtpUsername, string? FtpRootFolder,
+    string DeployProvider, string? WorkflowFile, string? FtpHost, int FtpPort, string? FtpUsername, string? FtpRootFolder,
     bool IsActive, bool HasGitPat, bool HasFtpPassword,
     DateTime CreatedOn, DateTime? UpdatedOn);
 
@@ -35,6 +35,7 @@ public class UpsertWebsiteRequest
     public string? PublishFolder { get; set; }
 
     public string DeployProvider { get; set; } = "FTP";
+    public string? WorkflowFile { get; set; }
     public string? FtpHost { get; set; }
     public int FtpPort { get; set; } = 21;
     public string? FtpUsername { get; set; }

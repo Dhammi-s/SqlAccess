@@ -151,6 +151,7 @@ public sealed class WebsiteService : IWebsiteService
         s.PublishCommand = req.PublishCommand;
         s.PublishFolder = req.PublishFolder;
         s.DeployProvider = string.IsNullOrWhiteSpace(req.DeployProvider) ? "FTP" : req.DeployProvider;
+        s.WorkflowFile = req.WorkflowFile;
         s.FtpHost = req.FtpHost;
         s.FtpPort = req.FtpPort <= 0 ? 21 : req.FtpPort;
         s.FtpUsername = req.FtpUsername;
@@ -168,7 +169,7 @@ public sealed class WebsiteService : IWebsiteService
     private static WebsiteDetail ToDetail(Website s) => new(
         s.WebsiteId, s.WebsiteName, s.RepositoryUrl, s.GitProvider, s.DefaultBranch, s.ProjectType,
         s.BuildCommand, s.PublishCommand, s.PublishFolder,
-        s.DeployProvider, s.FtpHost, s.FtpPort, s.FtpUsername, s.FtpRootFolder,
+        s.DeployProvider, s.WorkflowFile, s.FtpHost, s.FtpPort, s.FtpUsername, s.FtpRootFolder,
         s.IsActive, !string.IsNullOrEmpty(s.GitPat), !string.IsNullOrEmpty(s.FtpPassword),
         s.CreatedOn, s.UpdatedOn);
 }

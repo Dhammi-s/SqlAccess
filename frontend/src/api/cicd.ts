@@ -37,6 +37,7 @@ export interface WebsiteDetail {
   publishCommand?: string | null
   publishFolder?: string | null
   deployProvider: string
+  workflowFile?: string | null
   ftpHost?: string | null
   ftpPort: number
   ftpUsername?: string | null
@@ -59,6 +60,7 @@ export interface UpsertWebsite {
   publishCommand?: string | null
   publishFolder?: string | null
   deployProvider: string
+  workflowFile?: string | null
   ftpHost?: string | null
   ftpPort: number
   ftpUsername?: string | null

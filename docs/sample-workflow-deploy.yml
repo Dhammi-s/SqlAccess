@@ -1,0 +1,49 @@
+# Sample GitHub Actions workflow for the CI/CD portal (Option 3).
+#
+# HOW TO USE
+# 1. Copy this file into your TARGET repo (e.g. Dhammi-s/WorkProvider360) at:
+#        .github/workflows/deploy.yml
+# 2. In that repo → Settings → Secrets and variables → Actions, add:
+#        FTP_HOST      e.g. site80671.siteasp.net
+#        FTP_USERNAME  e.g. site80671
+#        FTP_PASSWORD  your FTP/SFTP password
+# 3. In the SQL Access portal, set the website's "Workflow file" to: deploy.yml
+# 4. Click Deploy — the portal dispatches this workflow, streams its steps,
+#    and records history. GitHub's runner does the build + upload (no shared-host
+#    limits, and GitHub's network is not firewall-blocked like your box was).
+#
+# The `workflow_dispatch` trigger is REQUIRED so the portal can start it via the API.
+
+name: Deploy
+
+on:
+  workflow_dispatch:      # lets the portal trigger it
+  push:
+    branches: [ master ]  # optional: also deploy on push
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        # Point at your web project's .csproj (adjust the path if it isn't at the repo root).
+        run: dotnet publish WorkProvider360.csproj -c Release -o publish
+
+      - name: Deploy to MonsterASP.NET (FTPS)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps          # MonsterASP.NET supports FTPS on port 21
+          port: 21
+          server-dir: /wwwroot/   # ⚠ this mirrors — it deletes remote files not in ./publish
+          local-dir: ./publish/

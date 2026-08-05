@@ -21,10 +21,12 @@ public sealed class DeploymentOrchestrator : IDeploymentOrchestrator
     private readonly IEncryptionService _enc;
     private readonly IDeploymentQueue _queue;
     private readonly IEnumerable<IDeploymentProvider> _providers;
+    private readonly IGitHubActionsService _actions;
 
     public DeploymentOrchestrator(
         AppDbContext db, ILogService logs, IGitService git, IBuildService build,
-        IEncryptionService enc, IDeploymentQueue queue, IEnumerable<IDeploymentProvider> providers)
+        IEncryptionService enc, IDeploymentQueue queue, IEnumerable<IDeploymentProvider> providers,
+        IGitHubActionsService actions)
     {
         _db = db;
         _logs = logs;
@@ -33,6 +35,7 @@ public sealed class DeploymentOrchestrator : IDeploymentOrchestrator
         _enc = enc;
         _queue = queue;
         _providers = providers;
+        _actions = actions;
     }
 
     public async Task RunAsync(int deploymentId, CancellationToken ct)
@@ -56,6 +59,15 @@ public sealed class DeploymentOrchestrator : IDeploymentOrchestrator
             await log("Info", $"=== Deployment #{deploymentId} started for '{website.WebsiteName}' ({deployment.Branch}) ===");
 
             var pat = _enc.Decrypt(website.GitPat);
+
+            // GitHub Actions mode: trigger the workflow and track it (works on shared hosting).
+            if (!string.IsNullOrWhiteSpace(website.WorkflowFile))
+            {
+                await RunViaGitHubActions(deployment, website, pat, log, progress, CheckCancel, ct);
+                await log("Info", "=== Deployment completed successfully ===");
+                await _logs.StatusAsync(deploymentId, DeploymentStatus.Success, ct);
+                return;
+            }
 
             // 1. Checkout
             CheckCancel();
@@ -141,6 +153,75 @@ public sealed class DeploymentOrchestrator : IDeploymentOrchestrator
         {
             _queue.ClearCancel(deploymentId);
         }
+    }
+
+    private async Task RunViaGitHubActions(
+        Deployment deployment, Website website, string? pat,
+        Func<string, string, Task> log, Func<int, string?, Task> progress, Action checkCancel, CancellationToken ct)
+    {
+        var repo = website.RepositoryUrl ?? "";
+        var branch = deployment.Branch ?? website.DefaultBranch ?? "main";
+        var wf = website.WorkflowFile!;
+
+        await log("Info", $"Triggering GitHub Actions workflow '{wf}' on '{branch}'...");
+        var dispatchedAt = DateTime.UtcNow;
+        await _actions.DispatchAsync(repo, wf, branch, pat, ct);
+        await log("Info", "Workflow dispatched. Locating the run on GitHub...");
+
+        long? runId = null;
+        for (var i = 0; i < 20 && runId is null; i++)
+        {
+            checkCancel();
+            await Task.Delay(3000, ct);
+            runId = await _actions.FindRunAsync(repo, wf, branch, pat, dispatchedAt, ct);
+        }
+        if (runId is null)
+            throw new InvalidOperationException("Workflow was dispatched but its run could not be located on GitHub.");
+
+        var run = await _actions.GetRunAsync(repo, runId.Value, pat, ct);
+        if (run is not null)
+        {
+            await log("Info", $"Run #{run.RunNumber} started — {run.HtmlUrl}");
+            if (!string.IsNullOrEmpty(run.HeadSha))
+            {
+                deployment.CommitId = run.HeadSha;
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
+        var logged = new HashSet<string>();
+        var status = "queued";
+        string? conclusion = null;
+        var htmlUrl = run?.HtmlUrl ?? "";
+
+        while (true)
+        {
+            checkCancel();
+            var r = await _actions.GetRunAsync(repo, runId.Value, pat, ct);
+            if (r is not null) { status = r.Status; conclusion = r.Conclusion; htmlUrl = r.HtmlUrl; }
+
+            var steps = await _actions.GetStepsAsync(repo, runId.Value, pat, ct);
+            var completed = 0;
+            foreach (var s in steps)
+            {
+                if (s.Status != "completed") continue;
+                completed++;
+                if (logged.Add($"{s.Job}/{s.Name}"))
+                {
+                    var ok = s.Conclusion is "success" or "skipped";
+                    await log(ok ? "Info" : "Error", $"{(ok ? "✓" : "✗")} {s.Job} · {s.Name} ({s.Conclusion})");
+                }
+            }
+            await progress((int)(completed * 100.0 / Math.Max(1, steps.Count)), null);
+
+            if (status == "completed") break;
+            await Task.Delay(4000, ct);
+        }
+
+        if (conclusion == "success")
+            await log("Info", $"Workflow succeeded — {htmlUrl}");
+        else
+            throw new InvalidOperationException($"Workflow concluded '{conclusion}'. Full logs: {htmlUrl}");
     }
 
     private static string? ResolvePublishFolder(string repoPath, string? configured)

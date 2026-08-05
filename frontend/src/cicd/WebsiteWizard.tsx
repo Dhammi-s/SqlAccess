@@ -20,6 +20,7 @@ const empty: UpsertWebsite = {
   publishCommand: '',
   publishFolder: '',
   deployProvider: 'SFTP',
+  workflowFile: 'deploy.yml',
   ftpHost: '',
   ftpPort: 22,
   ftpUsername: '',
@@ -34,6 +35,7 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
   const isEdit = websiteId !== null
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<UpsertWebsite>(empty)
+  const [mode, setMode] = useState<'actions' | 'local'>('actions')
   const [templates, setTemplates] = useState<BuildTemplate[]>([])
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
@@ -54,7 +56,8 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
     if (!isEdit) return
     setLoading(true)
     WebsitesApi.get(websiteId!)
-      .then((d) =>
+      .then((d) => {
+        setMode(d.workflowFile ? 'actions' : 'local')
         setForm({
           websiteName: d.websiteName,
           repositoryUrl: d.repositoryUrl ?? '',
@@ -66,14 +69,15 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
           publishCommand: d.publishCommand ?? '',
           publishFolder: d.publishFolder ?? '',
           deployProvider: d.deployProvider ?? 'FTP',
+          workflowFile: d.workflowFile ?? '',
           ftpHost: d.ftpHost ?? '',
           ftpPort: d.ftpPort,
           ftpUsername: d.ftpUsername ?? '',
           ftpPassword: '',
           ftpRootFolder: d.ftpRootFolder ?? '/',
           isActive: d.isActive,
-        }),
-      )
+        })
+      })
       .finally(() => setLoading(false))
   }, [websiteId, isEdit])
 
@@ -152,8 +156,12 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
     setSaving(true)
     setError(null)
     try {
-      if (isEdit) await WebsitesApi.update(websiteId!, form)
-      else await WebsitesApi.create(form)
+      const payload: UpsertWebsite = {
+        ...form,
+        workflowFile: mode === 'actions' ? form.workflowFile || 'deploy.yml' : '',
+      }
+      if (isEdit) await WebsitesApi.update(websiteId!, payload)
+      else await WebsitesApi.create(payload)
       onSaved()
     } catch (e: any) {
       setError(e.response?.data?.message ?? 'Save failed.')
@@ -265,19 +273,50 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
 
             {step === 4 && (
               <>
-                <p className="muted small">Suggested for {form.projectType} — edit as needed.</p>
-                <label>
-                  Build command
-                  <textarea rows={2} value={form.buildCommand ?? ''} onChange={(e) => set('buildCommand', e.target.value)} />
-                </label>
-                <label>
-                  Publish command
-                  <textarea rows={2} value={form.publishCommand ?? ''} onChange={(e) => set('publishCommand', e.target.value)} />
-                </label>
-                <label>
-                  Publish folder
-                  <input value={form.publishFolder ?? ''} onChange={(e) => set('publishFolder', e.target.value)} />
-                </label>
+                <div className="mode-row">
+                  <label className="switch-row">
+                    <input type="radio" name="buildmode" checked={mode === 'actions'} onChange={() => setMode('actions')} />
+                    Build with GitHub Actions (works on shared hosting)
+                  </label>
+                  <label className="switch-row">
+                    <input type="radio" name="buildmode" checked={mode === 'local'} onChange={() => setMode('local')} />
+                    Build on this machine (self-hosted)
+                  </label>
+                </div>
+
+                {mode === 'actions' ? (
+                  <>
+                    <label>
+                      Workflow file (in .github/workflows/)
+                      <input
+                        placeholder="deploy.yml"
+                        value={form.workflowFile ?? ''}
+                        onChange={(e) => set('workflowFile', e.target.value)}
+                      />
+                    </label>
+                    <div className="alert alert-info">
+                      The portal triggers this workflow on GitHub, streams its steps here, and records history.
+                      GitHub's runner does the build &amp; upload — your repo needs a{' '}
+                      <code>workflow_dispatch</code> workflow. (FTP settings below are not used in this mode.)
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="muted small">Suggested for {form.projectType} — edit as needed.</p>
+                    <label>
+                      Build command
+                      <textarea rows={2} value={form.buildCommand ?? ''} onChange={(e) => set('buildCommand', e.target.value)} />
+                    </label>
+                    <label>
+                      Publish command
+                      <textarea rows={2} value={form.publishCommand ?? ''} onChange={(e) => set('publishCommand', e.target.value)} />
+                    </label>
+                    <label>
+                      Publish folder
+                      <input value={form.publishFolder ?? ''} onChange={(e) => set('publishFolder', e.target.value)} />
+                    </label>
+                  </>
+                )}
               </>
             )}
 

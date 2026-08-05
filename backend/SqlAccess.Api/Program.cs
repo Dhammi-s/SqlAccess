@@ -41,6 +41,7 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IGitService, GitService>();
 builder.Services.AddSingleton<IBuildService, BuildService>();
 builder.Services.AddSingleton<IGitHubService, GitHubService>();
+builder.Services.AddSingleton<IGitHubActionsService, GitHubActionsService>();
 builder.Services.AddSingleton<IDeploymentProvider, FtpDeploymentProvider>();
 builder.Services.AddSingleton<IDeploymentProvider, SftpDeploymentProvider>();
 builder.Services.AddSingleton<ILogService, LogService>();
