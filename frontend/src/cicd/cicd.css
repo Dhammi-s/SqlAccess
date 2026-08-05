@@ -1,0 +1,435 @@
+/* Light theme, scoped to .cicd so it doesn't clash with the dark agencies app. */
+.cicd {
+  --c-bg: #f4f6fb;
+  --c-surface: #ffffff;
+  --c-surface-2: #f8fafc;
+  --c-border: #e2e8f0;
+  --c-text: #1e293b;
+  --c-muted: #64748b;
+  --c-primary: #2563eb;
+  --c-primary-hover: #1d4ed8;
+  --c-green: #16a34a;
+  --c-amber: #d97706;
+  --c-red: #dc2626;
+  --c-blue: #2563eb;
+
+  min-height: 100vh;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.cicd * {
+  box-sizing: border-box;
+}
+
+.cicd .topbar {
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-text);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.cicd .nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.cicd .nav a {
+  color: var(--c-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+}
+.cicd .nav a.active,
+.cicd .nav a:hover {
+  color: var(--c-primary);
+  background: #eff6ff;
+}
+.cicd .brand-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.cicd .brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.cicd .content {
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 4rem;
+}
+.cicd .page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+.cicd h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+.cicd h2 {
+  margin: 0;
+}
+.cicd .muted {
+  color: var(--c-muted);
+}
+.cicd .small {
+  font-size: 0.82rem;
+}
+.cicd .mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.84rem;
+}
+
+/* buttons */
+.cicd .btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cicd .btn.sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
+.cicd .btn.xs {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.78rem;
+}
+.cicd .btn-primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+.cicd .btn-primary:hover:not(:disabled) {
+  background: var(--c-primary-hover);
+}
+.cicd .btn-ghost {
+  background: #fff;
+  border-color: var(--c-border);
+  color: var(--c-text);
+}
+.cicd .btn-ghost:hover:not(:disabled) {
+  background: var(--c-surface-2);
+}
+.cicd .btn-danger {
+  background: #fff;
+  border-color: #fecaca;
+  color: var(--c-red);
+}
+.cicd .btn-danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+.cicd .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cicd .icon-btn {
+  background: none;
+  border: none;
+  color: var(--c-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+.cicd .icon-btn:hover {
+  background: var(--c-surface-2);
+  color: var(--c-text);
+}
+
+/* card + table */
+.cicd .card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.cicd .table-card {
+  overflow-x: auto;
+  padding: 0;
+}
+.cicd table.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.cicd table.tbl th,
+.cicd table.tbl td {
+  padding: 0.8rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--c-border);
+  white-space: nowrap;
+}
+.cicd table.tbl th {
+  color: var(--c-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--c-surface-2);
+}
+.cicd table.tbl tbody tr:hover {
+  background: #f8fafc;
+}
+.cicd .cell-title {
+  font-weight: 700;
+}
+.cicd .row-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+/* badges */
+.cicd .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.cicd .badge .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.cicd .badge.Queued {
+  background: #f1f5f9;
+  color: #475569;
+}
+.cicd .badge.Running {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.cicd .badge.Success {
+  background: #ecfdf5;
+  color: #16a34a;
+}
+.cicd .badge.Failed {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.cicd .badge.Cancelled {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+/* forms */
+.cicd label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+.cicd input,
+.cicd select,
+.cicd textarea {
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  color: var(--c-text);
+  font: inherit;
+  width: 100%;
+}
+.cicd input:focus,
+.cicd select:focus,
+.cicd textarea:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+.cicd textarea {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.82rem;
+  resize: vertical;
+}
+.cicd .grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+.cicd .switch-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--c-text);
+}
+.cicd .switch-row input {
+  width: auto;
+}
+
+/* alerts */
+.cicd .alert {
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.87rem;
+}
+.cicd .alert-ok {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+}
+.cicd .alert-bad {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+.cicd .alert-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+/* modal */
+.cicd-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: start center;
+  padding: 3rem 1rem;
+  z-index: 40;
+  overflow-y: auto;
+}
+.cicd-modal {
+  background: #fff;
+  color: #1e293b;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 640px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.cicd-modal.wide {
+  max-width: 900px;
+}
+.cicd-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.cicd-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+/* wizard steps */
+.cicd .steps {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.cicd .step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+.cicd .step .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 0.72rem;
+}
+.cicd .step.active .num {
+  background: var(--c-primary);
+  color: #fff;
+}
+.cicd .step.done .num {
+  background: var(--c-green);
+  color: #fff;
+}
+.cicd .fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* live console */
+.cicd .console {
+  background: #0b1020;
+  color: #d1d5db;
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  padding: 0.9rem 1rem;
+  height: 340px;
+  overflow-y: auto;
+  line-height: 1.55;
+}
+.cicd .console .ln {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.cicd .console .ts {
+  color: #64748b;
+  margin-right: 0.5rem;
+}
+.cicd .console .Info {
+  color: #d1d5db;
+}
+.cicd .console .Warning {
+  color: #fbbf24;
+}
+.cicd .console .Error {
+  color: #f87171;
+}
+.cicd .progress {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.75rem 0;
+}
+.cicd .progress > span {
+  display: block;
+  height: 100%;
+  background: var(--c-primary);
+  transition: width 0.3s ease;
+}
+.cicd .commit-box {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.85rem;
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AgenciesApi, type AgencyListItem } from '../api/agencies'
 import { useAuth } from '../auth/AuthContext'
 import { AgencyFormModal } from './AgencyFormModal'
@@ -78,6 +79,9 @@ export function AgenciesPage() {
           <span>SQL Access</span>
         </div>
         <div className="topbar-right">
+          <Link to="/websites" className="btn btn-ghost sm" style={{ textDecoration: 'none' }}>
+            Deploy Portal →
+          </Link>
           <span className="muted">{username}</span>
           <button className="btn btn-ghost sm" onClick={logout}>
             Sign out

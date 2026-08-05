@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { LoginPage } from './pages/LoginPage'
 import { AgenciesPage } from './pages/AgenciesPage'
+import { WebsitesPage } from './cicd/WebsitesPage'
 
 export default function App() {
   return (
@@ -15,6 +16,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AgenciesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/websites"
+            element={
+              <ProtectedRoute>
+                <WebsitesPage />
               </ProtectedRoute>
             }
           />

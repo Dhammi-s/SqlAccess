@@ -54,6 +54,14 @@ public class WebsitesController : ControllerBase
     public async Task<ActionResult<TestResult>> TestGit([FromBody] TestGitRequest req, CancellationToken ct)
         => Ok(await _svc.TestGitAsync(req, ct));
 
+    /// <summary>Load branches for an unsaved repo (used by the create wizard).</summary>
+    [HttpPost("branches-preview")]
+    public async Task<ActionResult<List<BranchInfo>>> BranchesPreview([FromBody] TestGitRequest req, CancellationToken ct)
+    {
+        try { return Ok(await _svc.PreviewBranchesAsync(req.RepositoryUrl, req.Pat, ct)); }
+        catch (Exception ex) { return StatusCode(502, new { message = ex.Message }); }
+    }
+
     [HttpPost("test-ftp")]
     public async Task<ActionResult<TestResult>> TestFtp([FromBody] TestFtpRequest req, CancellationToken ct)
         => Ok(await _svc.TestFtpAsync(req, ct));

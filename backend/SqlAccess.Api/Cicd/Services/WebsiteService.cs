@@ -14,6 +14,7 @@ public interface IWebsiteService
     Task<WebsiteDetail?> UpdateAsync(int id, UpsertWebsiteRequest req, CancellationToken ct);
     Task<bool> DeleteAsync(int id, CancellationToken ct);
     Task<List<BranchInfo>> GetBranchesAsync(int id, CancellationToken ct);
+    Task<List<BranchInfo>> PreviewBranchesAsync(string repoUrl, string? pat, CancellationToken ct);
     Task<CommitInfo?> GetLatestCommitAsync(int id, string branch, CancellationToken ct);
     Task<TestResult> TestGitAsync(TestGitRequest req, CancellationToken ct);
     Task<TestResult> TestFtpAsync(TestFtpRequest req, CancellationToken ct);
@@ -111,6 +112,9 @@ public sealed class WebsiteService : IWebsiteService
                 ?? throw new InvalidOperationException("Website not found.");
         return await _github.GetLatestCommitAsync(s.RepositoryUrl ?? "", branch, _enc.Decrypt(s.GitPat), ct);
     }
+
+    public Task<List<BranchInfo>> PreviewBranchesAsync(string repoUrl, string? pat, CancellationToken ct)
+        => _github.GetBranchesAsync(repoUrl, pat, ct);
 
     public Task<TestResult> TestGitAsync(TestGitRequest req, CancellationToken ct)
         => _github.TestConnectionAsync(req.RepositoryUrl, req.Pat, ct);
