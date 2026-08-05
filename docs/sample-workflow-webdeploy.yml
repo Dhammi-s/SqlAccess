@@ -40,13 +40,19 @@ jobs:
       - name: Publish
         run: dotnet publish WorkProvider360.csproj -c Release -o publish
 
-      - name: Deploy with WebDeploy (app-offline + overwrite locked files)
-        shell: pwsh
-        run: |
-          $msdeploy = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
-          & $msdeploy `
-            -verb:sync `
-            -source:contentPath="${{ github.workspace }}\publish" `
-            -dest:contentPath="${{ secrets.WEBDEPLOY_SITE }}",computerName="${{ secrets.WEBDEPLOY_URL }}",userName="${{ secrets.WEBDEPLOY_USERNAME }}",password="${{ secrets.WEBDEPLOY_PASSWORD }}",authtype="Basic" `
-            -allowUntrusted=true `
-            -enableRule:AppOffline           # <-- releases the locked DLLs during deploy
+      # Run via cmd (not PowerShell): msdeploy's comma-separated -dest args don't survive
+      # PowerShell quoting. cmd expands %VARS% cleanly. AppOffline releases locked DLLs.
+      - name: Deploy with WebDeploy
+        shell: cmd
+        env:
+          WD_SITE: ${{ secrets.WEBDEPLOY_SITE }}
+          WD_URL: ${{ secrets.WEBDEPLOY_URL }}
+          WD_USER: ${{ secrets.WEBDEPLOY_USERNAME }}
+          WD_PASS: ${{ secrets.WEBDEPLOY_PASSWORD }}
+        run: >
+          "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+          -verb:sync
+          -source:contentPath="%GITHUB_WORKSPACE%\publish"
+          -dest:contentPath="%WD_SITE%",computerName="%WD_URL%",userName="%WD_USER%",password="%WD_PASS%",authtype="Basic"
+          -allowUntrusted=true
+          -enableRule:AppOffline
