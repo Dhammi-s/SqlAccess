@@ -1,0 +1,31 @@
+# ---------- .NET ----------
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Uploaded DACPACs (runtime storage)
+App_Data/
+backend/SqlAccess.Api/App_Data/
+
+# ---------- Node / Vite ----------
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ---------- Secrets (NEVER commit) ----------
+# This file holds real secrets on the local machine. Use appsettings.example.json as the template.
+backend/SqlAccess.Api/appsettings.json
+appsettings.*.Local.json
+*.env
+.env
+.env.*
+secrets.json
+
+# ---------- OS / editor ----------
+.DS_Store
+Thumbs.db
+*.log
