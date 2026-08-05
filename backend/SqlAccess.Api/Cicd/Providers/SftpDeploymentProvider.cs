@@ -72,6 +72,7 @@ public sealed class SftpDeploymentProvider : IDeploymentProvider
             EnsureDir(client, root);
 
             var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { root };
+            var knownDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var done = 0;
             foreach (var file in files)
             {
@@ -81,11 +82,10 @@ public sealed class SftpDeploymentProvider : IDeploymentProvider
 
                 var dir = remote[..remote.LastIndexOf('/')];
                 if (dir.Length == 0) dir = "/";
-                EnsureDir(client, dir);
+                EnsureDir(client, dir, knownDirs);
                 AddParents(keep, root, remote);
 
-                using (var fs = File.OpenRead(file))
-                    client.UploadFile(fs, remote, true);
+                UploadWithRetry(client, file, remote, ct);
 
                 keep.Add(remote);
                 done++;
@@ -108,14 +108,38 @@ public sealed class SftpDeploymentProvider : IDeploymentProvider
         }, ct);
     }
 
-    private static void EnsureDir(SftpClient client, string dir)
+    private static void UploadWithRetry(SftpClient client, string localFile, string remote, CancellationToken ct)
+    {
+        Exception? last = null;
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                // FileShare.ReadWrite so we can read files the build server still holds a handle on.
+                using var fs = new FileStream(localFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                client.UploadFile(fs, remote, true);
+                return;
+            }
+            catch (IOException ex)
+            {
+                last = ex;
+                Thread.Sleep(600); // transient lock (build server / AV) — back off and retry
+            }
+        }
+        throw new IOException($"Could not read '{Path.GetFileName(localFile)}' after retries: {last?.Message}", last);
+    }
+
+    private static void EnsureDir(SftpClient client, string dir, HashSet<string>? known = null)
     {
         var parts = dir.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
         var cur = "";
         foreach (var p in parts)
         {
             cur += "/" + p;
+            if (known is not null && known.Contains(cur)) continue; // already ensured this run
             if (!client.Exists(cur)) client.CreateDirectory(cur);
+            known?.Add(cur);
         }
     }
 
