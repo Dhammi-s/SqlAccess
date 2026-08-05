@@ -14,9 +14,12 @@ public sealed class GitService : IGitService
 {
     private readonly string _reposRoot;
 
-    public GitService(IHostEnvironment env)
+    public GitService(IHostEnvironment env, IConfiguration config)
     {
-        _reposRoot = Path.Combine(env.ContentRootPath, "App_Data", "cicd", "repos");
+        // Configurable so the build host can point at a writable disk. Defaults to the system
+        // temp folder (writable on a real build machine) rather than wwwroot (locked on shared hosting).
+        _reposRoot = config["Cicd:WorkDir"]
+                     ?? Path.Combine(Path.GetTempPath(), "sqlaccess-cicd", "repos");
         Directory.CreateDirectory(_reposRoot);
     }
 

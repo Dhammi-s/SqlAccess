@@ -123,6 +123,18 @@ public sealed class DeploymentOrchestrator : IDeploymentOrchestrator
         catch (Exception ex)
         {
             await log("Error", ex.Message);
+
+            var m = ex.Message.ToLowerInvariant();
+            if (m.Contains("access is denied") || m.Contains("permission denied") || m.Contains("unauthorizedaccess"))
+                await log("Error",
+                    "This host cannot write build files — it looks like the portal is running on shared hosting. " +
+                    "Run the CI/CD portal on a machine you control (with git, .NET SDK and Node installed); " +
+                    "it will build there and upload the result to your host via FTP/SFTP.");
+            else if (m.Contains("is not recognized") || m.Contains("no such file") || m.Contains("cannot find") || m.Contains("enoent"))
+                await log("Error",
+                    "A build tool was not found on this host (dotnet / npm / node). " +
+                    "Run the portal on a machine with the required toolchain installed.");
+
             await _logs.StatusAsync(deploymentId, DeploymentStatus.Failed, ct);
         }
         finally
