@@ -2,6 +2,9 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SqlAccess.Api.Cicd.Hubs;
+using SqlAccess.Api.Cicd.Providers;
+using SqlAccess.Api.Cicd.Services;
 using SqlAccess.Api.Data;
 using SqlAccess.Api.Services;
 
@@ -33,6 +36,19 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISourceBuildService, SourceBuildService>();
 
+// ---------- CI/CD deployment portal ----------
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IGitService, GitService>();
+builder.Services.AddSingleton<IBuildService, BuildService>();
+builder.Services.AddSingleton<IGitHubService, GitHubService>();
+builder.Services.AddSingleton<IDeploymentProvider, FtpDeploymentProvider>();
+builder.Services.AddSingleton<ILogService, LogService>();
+builder.Services.AddSingleton<IDeploymentQueue, DeploymentQueue>();
+builder.Services.AddScoped<IDeploymentOrchestrator, DeploymentOrchestrator>();
+builder.Services.AddScoped<IWebsiteService, WebsiteService>();
+builder.Services.AddScoped<ICicdDeploymentService, CicdDeploymentService>();
+builder.Services.AddHostedService<DeploymentBackgroundService>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -47,6 +63,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+
+        // SignalR sends the JWT via query string on the WebSocket handshake.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    context.Token = accessToken;
+                return Task.CompletedTask;
+            },
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -54,7 +82,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("spa", p => p
         .WithOrigins(corsOrigins)
         .AllowAnyHeader()
-        .AllowAnyMethod()));
+        .AllowAnyMethod()
+        .AllowCredentials())); // required for SignalR websockets from the SPA origin
 
 var app = builder.Build();
 
@@ -84,5 +113,6 @@ app.UseCors("spa");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<DeploymentHub>("/hubs/deployment");
 
 app.Run();
