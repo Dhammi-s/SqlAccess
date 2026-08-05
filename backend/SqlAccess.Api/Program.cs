@@ -42,6 +42,7 @@ builder.Services.AddSingleton<IGitService, GitService>();
 builder.Services.AddSingleton<IBuildService, BuildService>();
 builder.Services.AddSingleton<IGitHubService, GitHubService>();
 builder.Services.AddSingleton<IDeploymentProvider, FtpDeploymentProvider>();
+builder.Services.AddSingleton<IDeploymentProvider, SftpDeploymentProvider>();
 builder.Services.AddSingleton<ILogService, LogService>();
 builder.Services.AddSingleton<IDeploymentQueue, DeploymentQueue>();
 builder.Services.AddScoped<IDeploymentOrchestrator, DeploymentOrchestrator>();

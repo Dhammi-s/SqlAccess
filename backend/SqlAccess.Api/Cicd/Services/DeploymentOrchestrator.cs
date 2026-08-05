@@ -95,10 +95,12 @@ public sealed class DeploymentOrchestrator : IDeploymentOrchestrator
                     $"Publish folder not found. Looked for '{website.PublishFolder}' and common fallbacks under {repoPath}.");
             await log("Info", $"Publish folder: {publishPath}");
 
-            // 5. Upload via the selected provider (FTP for now)
+            // 5. Upload via the website's configured provider (FTP / SFTP / …)
             CheckCancel();
-            var provider = _providers.FirstOrDefault(p => p.Key == "FTP")
-                ?? throw new InvalidOperationException("No FTP deployment provider registered.");
+            var providerKey = string.IsNullOrWhiteSpace(website.DeployProvider) ? "FTP" : website.DeployProvider;
+            var provider = _providers.FirstOrDefault(p => p.Key == providerKey)
+                ?? throw new InvalidOperationException($"No '{providerKey}' deployment provider registered.");
+            await log("Info", $"Uploading via {providerKey}...");
 
             var context = new DeployContext(
                 LocalFolder: publishPath,

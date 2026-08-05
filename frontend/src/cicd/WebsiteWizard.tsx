@@ -19,8 +19,9 @@ const empty: UpsertWebsite = {
   buildCommand: '',
   publishCommand: '',
   publishFolder: '',
+  deployProvider: 'SFTP',
   ftpHost: '',
-  ftpPort: 21,
+  ftpPort: 22,
   ftpUsername: '',
   ftpPassword: '',
   ftpRootFolder: '/',
@@ -64,6 +65,7 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
           buildCommand: d.buildCommand ?? '',
           publishCommand: d.publishCommand ?? '',
           publishFolder: d.publishFolder ?? '',
+          deployProvider: d.deployProvider ?? 'FTP',
           ftpHost: d.ftpHost ?? '',
           ftpPort: d.ftpPort,
           ftpUsername: d.ftpUsername ?? '',
@@ -130,6 +132,7 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
         username: form.ftpUsername ?? '',
         password: form.ftpPassword || null,
         rootFolder: form.ftpRootFolder,
+        provider: form.deployProvider,
       })
       setFtpTest({ ok: r.success, msg: r.message })
     } catch (e: any) {
@@ -282,16 +285,33 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
               <>
                 <div className="grid2">
                   <label>
-                    FTP host
-                    <input value={form.ftpHost ?? ''} onChange={(e) => set('ftpHost', e.target.value)} />
+                    Protocol
+                    <select
+                      value={form.deployProvider}
+                      onChange={(e) => {
+                        const p = e.target.value
+                        setForm((f) => ({ ...f, deployProvider: p, ftpPort: p === 'SFTP' ? 22 : 21 }))
+                      }}
+                    >
+                      <option value="SFTP">SFTP (port 22 — recommended)</option>
+                      <option value="FTP">FTP (port 21)</option>
+                    </select>
                   </label>
                   <label>
-                    FTP port
+                    Port
                     <input
                       type="number"
                       value={form.ftpPort}
                       onChange={(e) => set('ftpPort', parseInt(e.target.value) || 21)}
                     />
+                  </label>
+                  <label>
+                    Host
+                    <input value={form.ftpHost ?? ''} onChange={(e) => set('ftpHost', e.target.value)} />
+                  </label>
+                  <label>
+                    Root folder
+                    <input value={form.ftpRootFolder ?? ''} onChange={(e) => set('ftpRootFolder', e.target.value)} />
                   </label>
                   <label>
                     Username
@@ -306,13 +326,9 @@ export function WebsiteWizard({ websiteId, onClose, onSaved }: Props) {
                     />
                   </label>
                 </div>
-                <label>
-                  Root folder
-                  <input value={form.ftpRootFolder ?? ''} onChange={(e) => set('ftpRootFolder', e.target.value)} />
-                </label>
                 <div>
                   <button className="btn btn-ghost sm" onClick={testFtp} disabled={testingFtp}>
-                    {testingFtp ? 'Testing…' : 'Test FTP'}
+                    {testingFtp ? 'Testing…' : `Test ${form.deployProvider}`}
                   </button>
                   {ftpTest && (
                     <div className={`alert ${ftpTest.ok ? 'alert-ok' : 'alert-bad'}`} style={{ marginTop: '0.6rem' }}>

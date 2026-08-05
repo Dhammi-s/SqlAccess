@@ -45,6 +45,9 @@ public class Website
     public string? PublishCommand { get; set; }
     public string? PublishFolder { get; set; }
 
+    /// <summary>Deployment provider key: "FTP" or "SFTP".</summary>
+    public string DeployProvider { get; set; } = "FTP";
+
     public string? FtpHost { get; set; }
     public int FtpPort { get; set; } = 21;
     public string? FtpUsername { get; set; }

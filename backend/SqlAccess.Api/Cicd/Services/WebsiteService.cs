@@ -121,7 +121,9 @@ public sealed class WebsiteService : IWebsiteService
 
     public async Task<TestResult> TestFtpAsync(TestFtpRequest req, CancellationToken ct)
     {
-        var provider = _providers.First(p => p.Key == "FTP");
+        var key = string.IsNullOrWhiteSpace(req.Provider) ? "FTP" : req.Provider!;
+        var provider = _providers.FirstOrDefault(p => p.Key == key)
+                       ?? throw new InvalidOperationException($"Unknown provider '{key}'.");
         var ctx = new DeployContext("", req.Host, req.Port, req.Username, req.Password, req.RootFolder);
         var r = await provider.TestAsync(ctx, ct);
         return new TestResult(r.Success, r.Message);
@@ -148,6 +150,7 @@ public sealed class WebsiteService : IWebsiteService
         s.BuildCommand = req.BuildCommand;
         s.PublishCommand = req.PublishCommand;
         s.PublishFolder = req.PublishFolder;
+        s.DeployProvider = string.IsNullOrWhiteSpace(req.DeployProvider) ? "FTP" : req.DeployProvider;
         s.FtpHost = req.FtpHost;
         s.FtpPort = req.FtpPort <= 0 ? 21 : req.FtpPort;
         s.FtpUsername = req.FtpUsername;
@@ -165,7 +168,7 @@ public sealed class WebsiteService : IWebsiteService
     private static WebsiteDetail ToDetail(Website s) => new(
         s.WebsiteId, s.WebsiteName, s.RepositoryUrl, s.GitProvider, s.DefaultBranch, s.ProjectType,
         s.BuildCommand, s.PublishCommand, s.PublishFolder,
-        s.FtpHost, s.FtpPort, s.FtpUsername, s.FtpRootFolder,
+        s.DeployProvider, s.FtpHost, s.FtpPort, s.FtpUsername, s.FtpRootFolder,
         s.IsActive, !string.IsNullOrEmpty(s.GitPat), !string.IsNullOrEmpty(s.FtpPassword),
         s.CreatedOn, s.UpdatedOn);
 }

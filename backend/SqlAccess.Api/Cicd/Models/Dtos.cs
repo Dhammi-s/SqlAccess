@@ -15,7 +15,7 @@ public record WebsiteDetail(
     int WebsiteId, string WebsiteName, string? RepositoryUrl, string GitProvider,
     string? DefaultBranch, string ProjectType,
     string? BuildCommand, string? PublishCommand, string? PublishFolder,
-    string? FtpHost, int FtpPort, string? FtpUsername, string? FtpRootFolder,
+    string DeployProvider, string? FtpHost, int FtpPort, string? FtpUsername, string? FtpRootFolder,
     bool IsActive, bool HasGitPat, bool HasFtpPassword,
     DateTime CreatedOn, DateTime? UpdatedOn);
 
@@ -34,6 +34,7 @@ public class UpsertWebsiteRequest
     public string? PublishCommand { get; set; }
     public string? PublishFolder { get; set; }
 
+    public string DeployProvider { get; set; } = "FTP";
     public string? FtpHost { get; set; }
     public int FtpPort { get; set; } = 21;
     public string? FtpUsername { get; set; }
@@ -49,7 +50,7 @@ public class UpsertWebsiteRequest
 public record TestGitRequest(string RepositoryUrl, string? Pat);
 public record TestResult(bool Success, string Message);
 
-public record TestFtpRequest(string Host, int Port, string Username, string? Password, string? RootFolder);
+public record TestFtpRequest(string Host, int Port, string Username, string? Password, string? RootFolder, string? Provider);
 
 public record BranchInfo(string Name);
 public record CommitInfo(string Sha, string ShortSha, string Message, string Author, DateTime? Date);

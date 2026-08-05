@@ -36,6 +36,7 @@ export interface WebsiteDetail {
   buildCommand?: string | null
   publishCommand?: string | null
   publishFolder?: string | null
+  deployProvider: string
   ftpHost?: string | null
   ftpPort: number
   ftpUsername?: string | null
@@ -57,6 +58,7 @@ export interface UpsertWebsite {
   buildCommand?: string | null
   publishCommand?: string | null
   publishFolder?: string | null
+  deployProvider: string
   ftpHost?: string | null
   ftpPort: number
   ftpUsername?: string | null
@@ -118,8 +120,14 @@ export const WebsitesApi = {
     api.post<TestResult>('/websites/test-git', { repositoryUrl, pat }).then((r) => r.data),
   previewBranches: (repositoryUrl: string, pat?: string | null) =>
     api.post<BranchInfo[]>('/websites/branches-preview', { repositoryUrl, pat }).then((r) => r.data),
-  testFtp: (body: { host: string; port: number; username: string; password?: string | null; rootFolder?: string | null }) =>
-    api.post<TestResult>('/websites/test-ftp', body).then((r) => r.data),
+  testFtp: (body: {
+    host: string
+    port: number
+    username: string
+    password?: string | null
+    rootFolder?: string | null
+    provider?: string
+  }) => api.post<TestResult>('/websites/test-ftp', body).then((r) => r.data),
   buildTemplates: () => api.get<BuildTemplate[]>('/websites/build-templates').then((r) => r.data),
 }
 

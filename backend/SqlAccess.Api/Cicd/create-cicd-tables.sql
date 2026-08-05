@@ -12,6 +12,7 @@ CREATE TABLE dbo.Websites (
     BuildCommand    NVARCHAR(500)  NULL,
     PublishCommand  NVARCHAR(500)  NULL,
     PublishFolder   NVARCHAR(200)  NULL,
+    DeployProvider  NVARCHAR(20)   NOT NULL CONSTRAINT DF_Websites_DeployProvider DEFAULT 'FTP',
     FtpHost         NVARCHAR(200)  NULL,
     FtpPort         INT            NOT NULL CONSTRAINT DF_Websites_FtpPort DEFAULT 21,
     FtpUsername     NVARCHAR(200)  NULL,
