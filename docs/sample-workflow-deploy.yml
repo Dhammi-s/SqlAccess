@@ -16,10 +16,12 @@
 
 name: Deploy
 
+# IMPORTANT: this file (with workflow_dispatch) must exist on EVERY branch you deploy,
+# not just master — GitHub reads the trigger from the branch you dispatch.
 on:
   workflow_dispatch:      # lets the portal trigger it
   push:
-    branches: [ master ]  # optional: also deploy on push
+    branches: [ master, Development-secrateissue ]  # optional: also deploy on push
 
 jobs:
   build-and-deploy:
@@ -37,13 +39,19 @@ jobs:
         # Point at your web project's .csproj (adjust the path if it isn't at the repo root).
         run: dotnet publish WorkProvider360.csproj -c Release -o publish
 
-      - name: Deploy to MonsterASP.NET (FTPS)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      # SFTP is reliable for MonsterASP.NET; FTPS (port 21) gives "550 driver error".
+      - name: Deploy to MonsterASP.NET (SFTP)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.5
         with:
-          server: ${{ secrets.FTP_HOST }}
+          server: ${{ secrets.FTP_HOST }}       # site80671.siteasp.net
+          port: 22
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps          # MonsterASP.NET supports FTPS on port 21
-          port: 21
-          server-dir: /wwwroot/   # ⚠ this mirrors — it deletes remote files not in ./publish
-          local-dir: ./publish/
+          local_path: './publish/*'
+          remote_path: '/wwwroot'
+          sftp_only: true
+
+# ── If you later hit "file in use / locked DLL" on updates (because the app is running),
+#    the robust fix for ASP.NET on MonsterASP.NET is WebDeploy (the "WebDeploy access" tab
+#    in your panel) — it takes the app offline, overwrites locked files, and brings it back.
+#    Ask and I'll provide a WebDeploy-based workflow.
