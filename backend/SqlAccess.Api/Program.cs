@@ -1,7 +1,10 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SqlAccess.Api.Vault.Services;
 using SqlAccess.Api.Cicd.Hubs;
 using SqlAccess.Api.Cicd.Providers;
 using SqlAccess.Api.Cicd.Services;
@@ -51,6 +54,17 @@ builder.Services.AddScoped<IWebsiteService, WebsiteService>();
 builder.Services.AddScoped<ICicdDeploymentService, CicdDeploymentService>();
 builder.Services.AddHostedService<DeploymentBackgroundService>();
 
+// ---------- Secret Vault ----------
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IVaultAuditService, VaultAuditService>();
+builder.Services.AddScoped<IVaultService, VaultService>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("vault-auth", o => { o.Window = TimeSpan.FromMinutes(1); o.PermitLimit = 10; o.QueueLimit = 0; });
+    options.AddFixedWindowLimiter("vault-read", o => { o.Window = TimeSpan.FromMinutes(1); o.PermitLimit = 60; o.QueueLimit = 0; });
+});
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -78,7 +92,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             },
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Application token (has vault_app_id) vs the human admin (any other valid JWT).
+    options.AddPolicy("VaultApp", p => p.RequireClaim("vault_app_id"));
+    options.AddPolicy("VaultAdmin", p => p.RequireAssertion(ctx =>
+        ctx.User.Identity?.IsAuthenticated == true && !ctx.User.HasClaim(c => c.Type == "vault_app_id")));
+});
 
 builder.Services.AddCors(options =>
     options.AddPolicy("spa", p => p
@@ -112,6 +132,7 @@ app.UseExceptionHandler(errApp => errApp.Run(async context =>
 
 app.UseHttpsRedirection();
 app.UseCors("spa");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
