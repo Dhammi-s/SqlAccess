@@ -45,6 +45,17 @@ public class VaultController : ControllerBase
         return result is null ? NotFound(new { message = "Secret not found or not authorized." }) : Ok(result);
     }
 
+    /// <summary>All secrets the calling application is authorized for (for hydrating app config at startup).</summary>
+    [Authorize(Policy = "VaultApp")]
+    [EnableRateLimiting("vault-read")]
+    [HttpGet("my-secrets")]
+    public async Task<ActionResult<List<SecretValueResponse>>> MySecrets(CancellationToken ct)
+    {
+        var appId = int.Parse(User.FindFirst("vault_app_id")!.Value);
+        var appName = User.Identity?.Name ?? "";
+        return Ok(await _vault.GetAllSecretsForApplicationAsync(appId, appName, ct));
+    }
+
     // ============ Applications (admin) ============
 
     [Authorize(Policy = "VaultAdmin")]

@@ -33,6 +33,7 @@ public interface IVaultService
 
     // retrieval (application)
     Task<SecretValueResponse?> GetSecretForApplicationAsync(int applicationId, string appName, string secretName, CancellationToken ct);
+    Task<List<SecretValueResponse>> GetAllSecretsForApplicationAsync(int applicationId, string appName, CancellationToken ct);
 }
 
 public sealed class VaultService : IVaultService
@@ -308,6 +309,25 @@ public sealed class VaultService : IVaultService
 
         await _audit.LogAsync(AuditActions.GetSecret, true, applicationId, appName, secret.SecretId, secretName, ct: ct);
         return new SecretValueResponse(secret.Name, secret.SecretType, _enc.Decrypt(version.EncryptedValue)!, version.Version);
+    }
+
+    /// <summary>All secrets assigned to the application (name + decrypted value) — used to hydrate app config at startup.</summary>
+    public async Task<List<SecretValueResponse>> GetAllSecretsForApplicationAsync(int applicationId, string appName, CancellationToken ct)
+    {
+        var ids = await _db.ApplicationSecrets.AsNoTracking()
+            .Where(x => x.ApplicationId == applicationId).Select(x => x.SecretId).ToListAsync(ct);
+        var secrets = await _db.Secrets.AsNoTracking()
+            .Where(s => ids.Contains(s.SecretId) && s.IsActive).ToListAsync(ct);
+
+        var result = new List<SecretValueResponse>();
+        foreach (var s in secrets)
+        {
+            var v = await _db.SecretVersions.AsNoTracking().FirstOrDefaultAsync(x => x.SecretId == s.SecretId && x.IsCurrent, ct);
+            if (v is not null)
+                result.Add(new SecretValueResponse(s.Name, s.SecretType, _enc.Decrypt(v.EncryptedValue)!, v.Version));
+        }
+        await _audit.LogAsync(AuditActions.GetSecret, true, applicationId, appName, detail: $"Bulk fetch: {result.Count} secret(s)", ct: ct);
+        return result;
     }
 
     private static SecretListItem ToListItem(Secret s)
