@@ -82,6 +82,9 @@ export function AgenciesPage() {
           <Link to="/websites" className="btn btn-ghost sm" style={{ textDecoration: 'none' }}>
             Deploy Portal →
           </Link>
+          <Link to="/security" className="btn btn-ghost sm" style={{ textDecoration: 'none' }}>
+            🔐 Vault
+          </Link>
           <span className="muted">{username}</span>
           <button className="btn btn-ghost sm" onClick={logout}>
             Sign out
