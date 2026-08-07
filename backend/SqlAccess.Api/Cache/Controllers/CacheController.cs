@@ -15,8 +15,21 @@ namespace SqlAccess.Api.Cache.Controllers;
 public sealed class CacheController : ControllerBase
 {
     private readonly ICacheStore _store;
+    private readonly ICachePersistence _persistence;
 
-    public CacheController(ICacheStore store) => _store = store;
+    public CacheController(ICacheStore store, ICachePersistence persistence)
+    {
+        _store = store;
+        _persistence = persistence;
+    }
+
+    /// <summary>SAVE — write a snapshot now and truncate the append-only log.</summary>
+    [HttpPost("save")]
+    public async Task<ActionResult<CommandResult>> Save(CancellationToken ct)
+    {
+        await _persistence.SaveSnapshotAsync(_store, ct);
+        return Ok(new CommandResult(true, Message: "Snapshot saved"));
+    }
 
     /// <summary>PING — liveness check.</summary>
     [HttpGet("ping")]

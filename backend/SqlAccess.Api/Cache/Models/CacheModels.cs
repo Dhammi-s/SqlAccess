@@ -18,6 +18,15 @@ public sealed class CacheOptions
 
     /// <summary>Bind address. Default 127.0.0.1 (loopback) since the TCP protocol itself is unauthenticated.</summary>
     public string TcpBindAddress { get; set; } = "127.0.0.1";
+
+    /// <summary>Persistence mode: "None" (memory only), "Aof", "Snapshot", or "Both". Default "Both".</summary>
+    public string PersistenceMode { get; set; } = "Both";
+
+    /// <summary>Directory for the AOF/snapshot files. Relative paths resolve under the app content root.</summary>
+    public string DataDirectory { get; set; } = "App_Data/cache";
+
+    /// <summary>How often to write a full snapshot (and truncate the AOF). Default 300s.</summary>
+    public int SnapshotIntervalSeconds { get; set; } = 300;
 }
 
 /// <summary>Point-in-time counters for the store. Extended by the monitoring phase.</summary>

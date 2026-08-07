@@ -47,4 +47,10 @@ public interface ICacheStore
 
     /// <summary>A snapshot of the store's counters.</summary>
     CacheStatsSnapshot GetStats();
+
+    /// <summary>Exports all live (non-expired) entries — used to write a snapshot.</summary>
+    IEnumerable<(string Key, string Value, DateTime? ExpiresAtUtc)> Export();
+
+    /// <summary>Loads an entry directly during recovery: no persistence re-append, no stats, skips already-expired entries.</summary>
+    void LoadForRecovery(string key, string value, DateTime? expiresAtUtc);
 }

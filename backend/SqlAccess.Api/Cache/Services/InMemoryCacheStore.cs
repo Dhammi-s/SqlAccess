@@ -14,11 +14,15 @@ namespace SqlAccess.Api.Cache.Services;
 public sealed class InMemoryCacheStore : ICacheStore
 {
     private readonly ConcurrentDictionary<string, CacheEntry> _store = new(StringComparer.Ordinal);
+    private readonly ICachePersistence _persistence;
 
     private long _hits;
     private long _misses;
     private long _expiredRemoved;
     private long _totalCommands;
+
+    /// <summary>Creates the store. The persistence sink receives every mutation (no-op in memory-only mode).</summary>
+    public InMemoryCacheStore(ICachePersistence persistence) => _persistence = persistence;
 
     /// <inheritdoc />
     public long Count => _store.Count;
@@ -29,6 +33,7 @@ public sealed class InMemoryCacheStore : ICacheStore
         Interlocked.Increment(ref _totalCommands);
         var expiry = ttl is { } t && t > TimeSpan.Zero ? DateTime.UtcNow.Add(t) : (DateTime?)null;
         _store[key] = new CacheEntry { Value = value, ExpiresAtUtc = expiry };
+        _persistence.OnSet(key, value, expiry);
     }
 
     /// <inheritdoc />
@@ -54,7 +59,9 @@ public sealed class InMemoryCacheStore : ICacheStore
     public bool Delete(string key)
     {
         Interlocked.Increment(ref _totalCommands);
-        return _store.TryRemove(key, out var entry) && !entry.IsExpired(DateTime.UtcNow);
+        if (!_store.TryRemove(key, out var entry)) return false;
+        _persistence.OnDelete(key);
+        return !entry.IsExpired(DateTime.UtcNow);
     }
 
     /// <inheritdoc />
@@ -81,6 +88,7 @@ public sealed class InMemoryCacheStore : ICacheStore
         var now = DateTime.UtcNow;
         if (!_store.TryGetValue(key, out var entry) || entry.IsExpired(now)) return false;
         entry.ExpiresAtUtc = now.Add(ttl);
+        _persistence.OnExpire(key, entry.ExpiresAtUtc.Value);
         return true;
     }
 
@@ -96,12 +104,14 @@ public sealed class InMemoryCacheStore : ICacheStore
         Interlocked.Increment(ref _totalCommands);
         var now = DateTime.UtcNow;
         long result = 0;
+        DateTime? resultExpiry = null;
 
         _store.AddOrUpdate(
             key,
             addValueFactory: _ =>
             {
                 result = delta;
+                resultExpiry = null;
                 return new CacheEntry { Value = delta.ToString(CultureInfo.InvariantCulture) };
             },
             updateValueFactory: (_, existing) =>
@@ -115,9 +125,11 @@ public sealed class InMemoryCacheStore : ICacheStore
                     expiry = existing.ExpiresAtUtc; // preserve TTL across increments
                 }
                 result = current + delta;
+                resultExpiry = expiry;
                 return new CacheEntry { Value = result.ToString(CultureInfo.InvariantCulture), ExpiresAtUtc = expiry };
             });
 
+        _persistence.OnSet(key, result.ToString(CultureInfo.InvariantCulture), resultExpiry);
         return result;
     }
 
@@ -126,6 +138,7 @@ public sealed class InMemoryCacheStore : ICacheStore
     {
         Interlocked.Increment(ref _totalCommands);
         _store.Clear();
+        _persistence.OnFlush();
     }
 
     /// <inheritdoc />
@@ -161,5 +174,21 @@ public sealed class InMemoryCacheStore : ICacheStore
             ExpiredRemoved: Interlocked.Read(ref _expiredRemoved),
             TotalCommands: Interlocked.Read(ref _totalCommands),
             HitRate: total == 0 ? 0 : Math.Round((double)hits / total * 100, 2));
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<(string Key, string Value, DateTime? ExpiresAtUtc)> Export()
+    {
+        var now = DateTime.UtcNow;
+        foreach (var kvp in _store)
+            if (!kvp.Value.IsExpired(now))
+                yield return (kvp.Key, kvp.Value.Value, kvp.Value.ExpiresAtUtc);
+    }
+
+    /// <inheritdoc />
+    public void LoadForRecovery(string key, string value, DateTime? expiresAtUtc)
+    {
+        if (expiresAtUtc is { } exp && exp <= DateTime.UtcNow) return; // already expired — skip
+        _store[key] = new CacheEntry { Value = value, ExpiresAtUtc = expiresAtUtc };
     }
 }

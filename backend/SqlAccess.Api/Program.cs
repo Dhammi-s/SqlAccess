@@ -62,8 +62,17 @@ builder.Services.AddScoped<IVaultService, VaultService>();
 // ---------- In-memory cache store (Redis-like) ----------
 builder.Services.Configure<SqlAccess.Api.Cache.Models.CacheOptions>(
     builder.Configuration.GetSection(SqlAccess.Api.Cache.Models.CacheOptions.SectionName));
+
+// Persistence sink: file-based (AOF + snapshot) unless PersistenceMode = None.
+var persistenceMode = builder.Configuration[$"{SqlAccess.Api.Cache.Models.CacheOptions.SectionName}:PersistenceMode"] ?? "Both";
+if (persistenceMode.Equals("None", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<SqlAccess.Api.Cache.Interfaces.ICachePersistence, SqlAccess.Api.Cache.Persistence.NullPersistence>();
+else
+    builder.Services.AddSingleton<SqlAccess.Api.Cache.Interfaces.ICachePersistence, SqlAccess.Api.Cache.Persistence.FilePersistence>();
+
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Interfaces.ICacheStore, SqlAccess.Api.Cache.Services.InMemoryCacheStore>();
 builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.CacheCleanupWorker>();
+builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.PersistenceWorker>();
 // TCP/RESP server
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Networking.IConnectionManager, SqlAccess.Api.Cache.Networking.ConnectionManager>();
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Networking.CommandExecutor>();
@@ -121,6 +130,10 @@ var app = builder.Build();
 
 // Fail fast if the encryption key is misconfigured (constructs the service once).
 _ = app.Services.GetRequiredService<IEncryptionService>();
+
+// Recover the cache from disk BEFORE serving traffic: load the snapshot, then replay the AOF.
+app.Services.GetRequiredService<SqlAccess.Api.Cache.Interfaces.ICachePersistence>()
+    .Recover(app.Services.GetRequiredService<SqlAccess.Api.Cache.Interfaces.ICacheStore>());
 
 // Global exception handling — returns clean ProblemDetails, never a stack trace to clients.
 app.UseExceptionHandler(errApp => errApp.Run(async context =>
