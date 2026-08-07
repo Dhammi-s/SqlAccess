@@ -58,6 +58,12 @@ builder.Services.AddHostedService<DeploymentBackgroundService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IVaultAuditService, VaultAuditService>();
 builder.Services.AddScoped<IVaultService, VaultService>();
+
+// ---------- In-memory cache store (Redis-like) ----------
+builder.Services.Configure<SqlAccess.Api.Cache.Models.CacheOptions>(
+    builder.Configuration.GetSection(SqlAccess.Api.Cache.Models.CacheOptions.SectionName));
+builder.Services.AddSingleton<SqlAccess.Api.Cache.Interfaces.ICacheStore, SqlAccess.Api.Cache.Services.InMemoryCacheStore>();
+builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.CacheCleanupWorker>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
