@@ -9,6 +9,15 @@ public sealed class CacheOptions
 
     /// <summary>How often the background worker actively sweeps expired keys. Default 15s.</summary>
     public int CleanupIntervalSeconds { get; set; } = 15;
+
+    /// <summary>Enable the TCP/RESP server. Default true.</summary>
+    public bool TcpEnabled { get; set; } = true;
+
+    /// <summary>TCP port for the RESP server. Default 6380 (avoids clashing with a real Redis on 6379).</summary>
+    public int TcpPort { get; set; } = 6380;
+
+    /// <summary>Bind address. Default 127.0.0.1 (loopback) since the TCP protocol itself is unauthenticated.</summary>
+    public string TcpBindAddress { get; set; } = "127.0.0.1";
 }
 
 /// <summary>Point-in-time counters for the store. Extended by the monitoring phase.</summary>

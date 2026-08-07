@@ -64,6 +64,10 @@ builder.Services.Configure<SqlAccess.Api.Cache.Models.CacheOptions>(
     builder.Configuration.GetSection(SqlAccess.Api.Cache.Models.CacheOptions.SectionName));
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Interfaces.ICacheStore, SqlAccess.Api.Cache.Services.InMemoryCacheStore>();
 builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.CacheCleanupWorker>();
+// TCP/RESP server
+builder.Services.AddSingleton<SqlAccess.Api.Cache.Networking.IConnectionManager, SqlAccess.Api.Cache.Networking.ConnectionManager>();
+builder.Services.AddSingleton<SqlAccess.Api.Cache.Networking.CommandExecutor>();
+builder.Services.AddHostedService<SqlAccess.Api.Cache.Networking.CacheTcpServer>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
