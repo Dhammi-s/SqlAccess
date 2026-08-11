@@ -51,6 +51,7 @@ export function WebsitesPage() {
             Deployments
           </Link>
           <Link to="/security">Security</Link>
+          <Link to="/cache">Cache</Link>
         </nav>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span className="muted small">{username}</span>

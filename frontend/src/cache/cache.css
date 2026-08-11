@@ -1,0 +1,213 @@
+/* ============================================================
+   In-Memory Cache dashboard — styles layered over cicd.css.
+   Only cache-specific classes live here; shared primitives
+   (.card, .btn, .badge, .tbl, .topbar, .sec-subnav …) come
+   from cicd.css / security.css.
+   ============================================================ */
+
+/* --- live indicator dot ------------------------------------ */
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.live-dot.on {
+  background: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+.live-dot.off {
+  background: var(--c-amber);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+/* --- stat tiles -------------------------------------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+.stat-tile {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-muted);
+  font-weight: 600;
+}
+.stat-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.2rem;
+  color: var(--c-text);
+}
+.stat-sub {
+  font-size: 0.75rem;
+  color: var(--c-muted);
+  margin-top: 0.15rem;
+}
+
+/* --- charts ------------------------------------------------ */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.chart-card {
+  padding: 0.9rem 1rem 1rem;
+}
+.chart-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--c-muted);
+  margin-bottom: 0.5rem;
+}
+.rt-chart {
+  position: relative;
+}
+.rt-current {
+  position: absolute;
+  top: -1.7rem;
+  right: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* --- key value viewer -------------------------------------- */
+.value-view {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  max-height: 55vh;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --- settings ---------------------------------------------- */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.card.pad {
+  padding: 1.1rem 1.25rem;
+}
+.card-h {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.kv dt {
+  color: var(--c-muted);
+  font-weight: 600;
+}
+.kv dd {
+  margin: 0;
+  color: var(--c-text);
+  text-align: right;
+  word-break: break-word;
+}
+.btn-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+/* --- banner ------------------------------------------------ */
+.banner {
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+.banner.info {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  color: var(--c-primary);
+}
+
+/* --- logs -------------------------------------------------- */
+.log-card {
+  padding: 0;
+  overflow: hidden;
+}
+.log-list {
+  max-height: 65vh;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+.log-row {
+  display: grid;
+  grid-template-columns: 90px 90px 1fr;
+  gap: 0.75rem;
+  padding: 0.4rem 1rem;
+  border-bottom: 1px solid var(--c-border);
+  align-items: baseline;
+}
+.log-row:last-child {
+  border-bottom: none;
+}
+.log-time {
+  color: var(--c-muted);
+}
+.log-level {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.log-level.lvl-info {
+  color: var(--c-primary);
+}
+.log-level.lvl-warn {
+  color: var(--c-amber);
+}
+.log-level.lvl-err {
+  color: var(--c-red);
+}
+.log-level.lvl-dbg {
+  color: var(--c-muted);
+}
+.log-msg {
+  color: var(--c-text);
+  word-break: break-word;
+}
+
+/* --- misc helpers ------------------------------------------ */
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  cursor: pointer;
+}
+.right {
+  text-align: right;
+}

@@ -85,6 +85,9 @@ export function AgenciesPage() {
           <Link to="/security" className="btn btn-ghost sm" style={{ textDecoration: 'none' }}>
             🔐 Vault
           </Link>
+          <Link to="/cache" className="btn btn-ghost sm" style={{ textDecoration: 'none' }}>
+            ⚡ Cache
+          </Link>
           <span className="muted">{username}</span>
           <button className="btn btn-ghost sm" onClick={logout}>
             Sign out
