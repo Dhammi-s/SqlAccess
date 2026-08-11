@@ -1,24 +1,45 @@
+using System.Diagnostics;
 using System.Globalization;
 using SqlAccess.Api.Cache.Interfaces;
+using SqlAccess.Api.Cache.Monitoring;
 
 namespace SqlAccess.Api.Cache.Networking;
 
 /// <summary>
 /// Parses a command's argument array and executes it against the <see cref="ICacheStore"/>,
-/// returning the RESP reply. Stateless and thread-safe; registered as a singleton.
+/// returning the RESP reply. Records each command's name and latency with the monitoring service.
+/// Stateless and thread-safe; registered as a singleton.
 /// </summary>
 public sealed class CommandExecutor
 {
     private readonly ICacheStore _store;
+    private readonly IMonitoringService _monitoring;
 
-    public CommandExecutor(ICacheStore store) => _store = store;
+    public CommandExecutor(ICacheStore store, IMonitoringService monitoring)
+    {
+        _store = store;
+        _monitoring = monitoring;
+    }
 
     /// <summary>Executes one command. Never throws — protocol/usage errors become RESP error replies.</summary>
     public RespValue Execute(string[] args)
     {
         if (args.Length == 0) return RespValue.Error("ERR empty command");
         var cmd = args[0].ToUpperInvariant();
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            return ExecuteCore(cmd, args);
+        }
+        finally
+        {
+            sw.Stop();
+            _monitoring.RecordCommand(cmd, sw.Elapsed.TotalMilliseconds);
+        }
+    }
 
+    private RespValue ExecuteCore(string cmd, string[] args)
+    {
         try
         {
             return cmd switch

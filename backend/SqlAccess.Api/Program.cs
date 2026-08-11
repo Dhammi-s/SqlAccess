@@ -73,8 +73,10 @@ else
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Interfaces.ICacheStore, SqlAccess.Api.Cache.Services.InMemoryCacheStore>();
 builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.CacheCleanupWorker>();
 builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.PersistenceWorker>();
+builder.Services.AddHostedService<SqlAccess.Api.Cache.Workers.MetricsBroadcastWorker>();
 // TCP/RESP server
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Networking.IConnectionManager, SqlAccess.Api.Cache.Networking.ConnectionManager>();
+builder.Services.AddSingleton<SqlAccess.Api.Cache.Monitoring.IMonitoringService, SqlAccess.Api.Cache.Monitoring.MonitoringService>();
 builder.Services.AddSingleton<SqlAccess.Api.Cache.Networking.CommandExecutor>();
 builder.Services.AddHostedService<SqlAccess.Api.Cache.Networking.CacheTcpServer>();
 builder.Services.AddRateLimiter(options =>
@@ -160,5 +162,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<DeploymentHub>("/hubs/deployment");
+app.MapHub<SqlAccess.Api.Cache.Hubs.CacheMetricsHub>("/hubs/cache");
 
 app.Run();
