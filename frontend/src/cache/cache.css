@@ -199,6 +199,29 @@
   word-break: break-word;
 }
 
+/* --- new-key form ------------------------------------------ */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.25rem 0 0.5rem;
+}
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+.fld > span {
+  color: var(--c-muted);
+  font-weight: 600;
+}
+.fld textarea.search {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.5;
+}
+
 /* --- misc helpers ------------------------------------------ */
 .chk {
   display: inline-flex;

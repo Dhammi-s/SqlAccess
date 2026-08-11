@@ -14,6 +14,9 @@ export function KeyExplorer() {
   const pageSize = 25
   const [loading, setLoading] = useState(true)
   const [viewing, setViewing] = useState<{ key: string; value: string | null } | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ key: '', value: '', ttl: '' })
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -40,6 +43,24 @@ export function KeyExplorer() {
     if (input == null) return
     await CacheApi.expire(k.key, parseInt(input) || 0)
     load()
+  }
+
+  function openAdd() {
+    setForm({ key: '', value: '', ttl: '' })
+    setAdding(true)
+  }
+  async function saveNew() {
+    if (!form.key.trim()) return
+    setSaving(true)
+    try {
+      const ttl = form.ttl.trim() ? parseInt(form.ttl) : undefined
+      await CacheApi.set(form.key.trim(), form.value, ttl && ttl > 0 ? ttl : undefined)
+      setAdding(false)
+      setPage(1)
+      load()
+    } finally {
+      setSaving(false)
+    }
   }
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1
@@ -84,6 +105,9 @@ export function KeyExplorer() {
           }}
         >
           Search
+        </button>
+        <button className="btn btn-primary sm" onClick={openAdd}>
+          + New key
         </button>
       </div>
 
@@ -153,6 +177,60 @@ export function KeyExplorer() {
           Next →
         </button>
       </div>
+
+      {adding && (
+        <div className="cicd-modal-backdrop" onMouseDown={() => setAdding(false)}>
+          <div className="cicd-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="cicd-modal-head">
+              <h2>New key</h2>
+              <button className="icon-btn" onClick={() => setAdding(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="form-grid">
+              <label className="fld">
+                <span>Key</span>
+                <input
+                  className="search"
+                  autoFocus
+                  placeholder="e.g. user:42 or session:abc"
+                  value={form.key}
+                  onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
+                />
+              </label>
+              <label className="fld">
+                <span>Value</span>
+                <textarea
+                  className="search"
+                  rows={4}
+                  placeholder="Plain text or JSON"
+                  value={form.value}
+                  onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
+                />
+              </label>
+              <label className="fld">
+                <span>TTL (seconds) — optional</span>
+                <input
+                  className="search"
+                  type="number"
+                  min={0}
+                  placeholder="blank = no expiry"
+                  value={form.ttl}
+                  onChange={(e) => setForm((f) => ({ ...f, ttl: e.target.value }))}
+                />
+              </label>
+            </div>
+            <div className="cicd-modal-actions">
+              <button className="btn btn-ghost" onClick={() => setAdding(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={saveNew} disabled={saving || !form.key.trim()}>
+                {saving ? 'Saving…' : 'Save key'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {viewing && (
         <div className="cicd-modal-backdrop" onMouseDown={() => setViewing(null)}>
