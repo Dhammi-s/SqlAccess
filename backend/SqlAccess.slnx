@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SqlAccess.Api/SqlAccess.Api.csproj" />
+  <Project Path="SqlAccess.Tests/SqlAccess.Tests.csproj" />
+</Solution>
